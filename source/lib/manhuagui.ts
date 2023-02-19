@@ -1,9 +1,10 @@
 import {decompressFromBase64} from 'lz-string';
-import {Manga, MangaParser} from '../types';
+import {Manga, MangaParser, Comic} from '../types';
 import {parseScript} from 'esprima';
 import {ExpressionStatement, CallExpression, MemberExpression, Literal} from 'estree';
 import {getContent} from '../util';
 import cheerio from 'cheerio';
+import got from 'got';
 
 function decode(p: any, a: any, c: any, k: any, e: any, d: any) {
 	e = function (c: any) {
@@ -63,23 +64,13 @@ export class Parser implements MangaParser {
 	url: string;
 	comicId: string;
 	$: cheerio.Root;
+	comicInfo?: Comic;
 
 	constructor(comicId: string) {
 		this.comicId = comicId;
 		this.base = 'https://www.manhuagui.com';
 	}
-	async getComicInfo(): Promise<{
-		intro: string;
-		name: string;
-		otherName: string;
-		sourceName: string;
-		status: string;
-		lastUpdateTime: string;
-		publishTime: string;
-		category: string;
-		author: string;
-		chapters: {href: string; title: string; count: string}[];
-	}> {
+	async getComicInfo() {
 		const url = `${this.base}/comic/${this.comicId}/`;
 
 		const html = await getContent(url);
@@ -96,7 +87,8 @@ export class Parser implements MangaParser {
 		const author = $('.detail-list>li').eq(1).find('a').eq(1).text();
 
 		const chapters = await this.getChapters();
-		return {
+
+		const data = {
 			intro,
 			name,
 			otherName,
@@ -108,16 +100,20 @@ export class Parser implements MangaParser {
 			author,
 			chapters,
 		};
+		this.comicInfo = data;
+		return data;
 	}
 
+	// 获取章节
 	async getChapters() {
 		const url = `${this.base}/comic/${this.comicId}/`;
 		const html = await getContent(url);
 		const $ = cheerio.load(html);
 
 		const chapterList = [];
-		$('.chapter-list a').map((_, item) => {
+		$('.chapter-list a').map((index, item) => {
 			chapterList.push({
+				id: index,
 				title: $(item).attr('title'),
 				count: $(item).find('i').text(),
 				href: `${this.base}${$(item).attr('href')}`,
@@ -126,6 +122,7 @@ export class Parser implements MangaParser {
 
 		return chapterList;
 	}
+	// 章节解析
 	async parseChapter(url: string): Promise<Manga> {
 		const html = await getContent(url);
 		const $ = cheerio.load(html);
@@ -163,11 +160,40 @@ export class Parser implements MangaParser {
 		return {images, title, chapter, site: '漫画柜'};
 	}
 
+	// 下载漫画全部章节
+	async downloadComic() {
+		if (!this.comicInfo.chapters) return;
+
+		this.comicInfo.chapters;
+	}
+
+	// 下载章节
+	async downloadChapterByUrl(chapterUrl: string) {
+		const images = await this.parseChapter(chapterUrl);
+
+		(images.images ?? []).map((url) => {
+			got.get(url, {});
+		});
+	}
+	async _download(url: string) {
+		return got.get(url, {
+			headers: {
+				Host: 'i.hamreus.com',
+				referer: this.base,
+			},
+			https: {
+				rejectUnauthorized: false,
+			},
+		});
+	}
+
+	// 废弃
 	async init() {
 		const html = await getContent(this.url);
 		const $ = cheerio.load(html);
 		this.$ = $;
 	}
+	// 废弃
 	async parse(): Promise<Manga> {
 		const $ = this.$;
 		let data;

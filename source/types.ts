@@ -16,6 +16,19 @@ export interface Manga {
 	images: string[];
 }
 
+export interface Comic {
+	intro: string;
+	name: string;
+	otherName: string;
+	sourceName: string;
+	status: string;
+	lastUpdateTime: string;
+	publishTime: string;
+	category: string;
+	author: string;
+	chapters: {href: string; title: string; count: string}[];
+}
+
 export interface MangaOptions {
 	requestOptions?: RequestOptions;
 }
@@ -24,12 +37,13 @@ export interface MangaParser {
 	base?: string;
 	url: string;
 	comicId?: string;
+	comicInfo?: Comic;
 	init: () => Promise<void>;
 	parse: ($: cheerio.Root, rawHtml: string) => Promise<Manga>;
 	search?: () => {};
 	getChapters?: () => {};
 	getImages?: (chapterId: string) => {};
-	getComicInfo?: () => {};
+	getComicInfo?: () => Promise<Comic>;
 }
 
 export interface SupportedSitesMap {
