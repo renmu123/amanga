@@ -1,17 +1,27 @@
 import * as CryptoJS from 'crypto-js';
 import {parseScript} from 'esprima';
 import {Manga, MangaParser} from '../types';
-
+import {getContent} from '../util';
+import cheerio from 'cheerio';
 const RES_HOST = 'https://mhcdn.manhuazj.com/';
 
 export class Parser implements MangaParser {
-	async parse($: cheerio.Root): Promise<Manga> {
-		const title = $('.head_title a')
-			.text()
-			.trim();
-		const chapter = $('.head_title h2')
-			.text()
-			.trim();
+	public url: string;
+	$: cheerio.Root;
+	constructor(url: string) {
+		this.url = url;
+	}
+	async init() {
+		const html = await getContent(this.url);
+		const $ = cheerio.load(html);
+
+		this.$ = $;
+		// return 'pp';
+	}
+	async parse(): Promise<Manga> {
+		const $ = this.$;
+		const title = $('.head_title a').text().trim();
+		const chapter = $('.head_title h2').text().trim();
 		const scripts = $('script').toArray();
 
 		let imagePath = '';

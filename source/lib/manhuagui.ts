@@ -2,9 +2,11 @@ import {decompressFromBase64} from 'lz-string';
 import {Manga, MangaParser} from '../types';
 import {parseScript} from 'esprima';
 import {ExpressionStatement, CallExpression, MemberExpression, Literal} from 'estree';
+import {getContent} from '../util';
+import cheerio from 'cheerio';
 
 function decode(p: any, a: any, c: any, k: any, e: any, d: any) {
-	e = function(c: any) {
+	e = function (c: any) {
 		return (
 			(c < a ? '' : e(Math.floor(c / a))) +
 			((c = c % a) > 35 ? String.fromCharCode(c + 29) : c.toString(36))
@@ -14,11 +16,11 @@ function decode(p: any, a: any, c: any, k: any, e: any, d: any) {
 	if (true) {
 		while (c--) d[e(c)] = k[c] || e(c);
 		k = [
-			function(e: any) {
+			function (e: any) {
 				return d[e];
 			},
 		];
-		e = function() {
+		e = function () {
 			return '\\w+';
 		};
 		c = 1;
@@ -33,7 +35,7 @@ function parseData(statement: ExpressionStatement) {
 	const data: (string | string[])[] = [];
 
 	((statement.expression as CallExpression)?.arguments[0] as CallExpression).arguments.forEach(
-		arg => {
+		(arg) => {
 			if (arg.type === 'Literal') {
 				data.push(arg.value?.toString() ?? '');
 			} else if (arg.type === 'CallExpression') {
@@ -57,7 +59,37 @@ function parseData(statement: ExpressionStatement) {
 
 // https://www.manhuagui.com/
 export class Parser implements MangaParser {
-	async parse($: cheerio.Root): Promise<Manga> {
+	base: string;
+	url: string;
+	comicId: string;
+	$: cheerio.Root;
+
+	constructor(comicId: string) {
+		this.comicId = comicId;
+		this.base = 'https://www.manhuagui.com';
+	}
+	async getComicInfo() {
+		const url = `${this.base}/comic/${this.comicId}`;
+		const html = await getContent(url, {
+			headers: {
+				cookie: 'country=CN',
+				'user-agent':
+					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+			},
+		});
+		const $ = cheerio.load(html);
+		// console.log($);
+		const intro = $('.intro-all').text();
+		console.log(intro);
+	}
+
+	async init() {
+		const html = await getContent(this.url);
+		const $ = cheerio.load(html);
+		this.$ = $;
+	}
+	async parse(): Promise<Manga> {
+		const $ = this.$;
 		let data;
 		const scripts = $('script').toArray();
 		for (const ele of scripts) {
@@ -84,7 +116,7 @@ export class Parser implements MangaParser {
 		for (const file of data.files) {
 			images.push(
 				decodeURI(
-					`https://i.hamreus.com${data.path}${file}?cid=${data.cid}&md5=${data.sl.md5}`
+					`https://i.hamreus.com${data.path}${file}?e=${data.sl.e}&m=${data.sl.m}`
 				)
 			);
 		}

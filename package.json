@@ -10,6 +10,7 @@
 	"prettier": "@yme/prettier-config",
 	"scripts": {
 		"build": "del-cli dist && tsc",
+		"watch": "tsc -w",
 		"docs:dev": "vuepress dev docs",
 		"docs:build": "vuepress build docs"
 	},
@@ -20,7 +21,8 @@
 		"cheerio": "1.0.0-rc.10",
 		"crypto-js": "4.1.1",
 		"esprima": "4.0.1",
-		"got": "^9.6.0",
+		"got": "12.5.3",
+		"ky": "^0.33.2",
 		"lz-string": "1.4.4"
 	},
 	"keywords": [

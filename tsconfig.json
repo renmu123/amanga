@@ -2,12 +2,13 @@
 	"extends": "@yme/tsconfig",
 	"compilerOptions": {
 		"outDir": "dist",
-        "target": "ES2020",
-        "module": "CommonJS",
+		"target": "ES2020",
+		"module": "CommonJS",
 		"lib": ["ES2020"],
-        "allowJs": true,
+		"allowJs": true,
 		"esModuleInterop": true,
-        "noUnusedLocals": false
+		"noUnusedLocals": false,
+		"strict": false
 	},
 	"include": ["source"]
 }

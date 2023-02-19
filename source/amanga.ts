@@ -7,7 +7,7 @@ const supportedSites: SupportedSitesMap = {
 	qq: 'qq',
 	nhentai: 'nhentai',
 	loveheaven: 'loveheaven',
-    weloma: 'loveheaven',
+	weloma: 'loveheaven',
 };
 
 function match1(text: string, regex: string | RegExp) {
@@ -25,17 +25,18 @@ export async function getMangaParser(url: string): Promise<MangaParser> {
 
 	if (key in supportedSites) {
 		const {Parser} = await import(`./lib/${supportedSites[key]}`);
-		return new Parser();
+		return new Parser(url);
 	}
 
 	throw new Error('Site not supported ' + url);
 }
 
-async function amanga(url: string, content?: string, options?: MangaOptions): Promise<Manga> {
-	const mm = await getMangaParser(url);
-	const html = content || (await getContent(url, options?.requestOptions));
-	const $ = cheerio.load(html);
-	return mm.parse($, html);
+async function amanga(url: string): Promise<MangaParser> {
+	const parser = await getMangaParser(url);
+
+	await parser.init();
+
+	return parser;
 }
 
 export default amanga;

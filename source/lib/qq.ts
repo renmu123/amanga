@@ -1,5 +1,6 @@
 import {Manga, MangaParser} from '../types';
-
+import {getContent} from '../util';
+import cheerio from 'cheerio';
 interface QQManga {
 	comic: {
 		title: string;
@@ -13,7 +14,7 @@ interface QQManga {
 function Base() {
 	var _keyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 	// @ts-ignore
-	this.decode = function(c) {
+	this.decode = function (c) {
 		var a = '',
 			b,
 			d,
@@ -36,7 +37,7 @@ function Base() {
 		return (a = _utf8_decode(a));
 	};
 	// @ts-ignore
-	var _utf8_decode = function(c) {
+	var _utf8_decode = function (c) {
 		// @ts-ignore
 		for (var a = '', b = 0, d = 0, c1 = 0, c2 = 0, c3 = 0; b < c.length; )
 			(d = c.charCodeAt(b)),
@@ -82,6 +83,14 @@ function isNonceLike(nonce: string): boolean {
 
 // https://ac.qq.com/
 export class Parser implements MangaParser {
+	url: string;
+	constructor(url: string) {
+		this.url = url;
+	}
+	async init() {
+		const html = await getContent(this.url);
+		const $ = cheerio.load(html);
+	}
 	async parse($: cheerio.Root, _rawHtml: string): Promise<Manga> {
 		const scripts = $('script').toArray();
 
@@ -109,7 +118,7 @@ export class Parser implements MangaParser {
 
 		const title = result.comic.title;
 		const chapter = result.chapter.cTitle;
-		const images = result.picture.map(p => p.url);
+		const images = result.picture.map((p) => p.url);
 
 		return {title, images, chapter, site: 'QQ'};
 	}

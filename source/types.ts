@@ -21,7 +21,15 @@ export interface MangaOptions {
 }
 
 export interface MangaParser {
+	base?: string;
+	url: string;
+	comicId?: string;
+	init: () => Promise<void>;
 	parse: ($: cheerio.Root, rawHtml: string) => Promise<Manga>;
+	search?: () => {};
+	getChapters?: () => {};
+	getImages?: (chapterId: string) => {};
+	getComicInfo?: () => {};
 }
 
 export interface SupportedSitesMap {
