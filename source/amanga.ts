@@ -1,5 +1,5 @@
 import cheerio from 'cheerio';
-import {MangaParser, SupportedSitesMap, Manga, MangaOptions} from './types';
+import {MangaParser, SupportedSitesMap, Manga} from './types';
 import {getContent} from './util';
 
 const supportedSites: SupportedSitesMap = {

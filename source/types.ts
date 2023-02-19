@@ -1,4 +1,4 @@
-import {Options as RequestOptions} from 'ky';
+import {OptionsOfTextResponseBody as RequestOptions} from 'got';
 
 // 漫画单话
 export interface Manga {

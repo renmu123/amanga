@@ -68,19 +68,99 @@ export class Parser implements MangaParser {
 		this.comicId = comicId;
 		this.base = 'https://www.manhuagui.com';
 	}
-	async getComicInfo() {
-		const url = `${this.base}/comic/${this.comicId}`;
-		const html = await getContent(url, {
-			headers: {
-				cookie: 'country=CN',
-				'user-agent':
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-			},
-		});
+	async getComicInfo(): Promise<{
+		intro: string;
+		name: string;
+		otherName: string;
+		sourceName: string;
+		status: string;
+		lastUpdateTime: string;
+		publishTime: string;
+		category: string;
+		author: string;
+		chapters: {href: string; title: string; count: string}[];
+	}> {
+		const url = `${this.base}/comic/${this.comicId}/`;
+
+		const html = await getContent(url);
 		const $ = cheerio.load(html);
-		// console.log($);
-		const intro = $('.intro-all').text();
-		console.log(intro);
+		const intro = $('#intro-all').text();
+		const name = $('.book-title h1').text();
+		const otherName = $('.book-title h2').text();
+		const sourceName = $('.detail-list>li').eq(2).find('a').text();
+		const status = $('.status .red').eq(0).text();
+		const lastUpdateTime = $('.status .red').eq(1).text();
+
+		const publishTime = $('.detail-list>li').eq(0).find('a').eq(0).text();
+		const category = $('.detail-list>li').eq(1).find('a').eq(0).text();
+		const author = $('.detail-list>li').eq(1).find('a').eq(1).text();
+
+		const chapters = await this.getChapters();
+		return {
+			intro,
+			name,
+			otherName,
+			sourceName,
+			status,
+			lastUpdateTime,
+			publishTime,
+			category,
+			author,
+			chapters,
+		};
+	}
+
+	async getChapters() {
+		const url = `${this.base}/comic/${this.comicId}/`;
+		const html = await getContent(url);
+		const $ = cheerio.load(html);
+
+		const chapterList = [];
+		$('.chapter-list a').map((_, item) => {
+			chapterList.push({
+				title: $(item).attr('title'),
+				count: $(item).find('i').text(),
+				href: `${this.base}${$(item).attr('href')}`,
+			});
+		});
+
+		return chapterList;
+	}
+	async parseChapter(url: string): Promise<Manga> {
+		const html = await getContent(url);
+		const $ = cheerio.load(html);
+		let data;
+		const scripts = $('script').toArray();
+		for (const ele of scripts) {
+			const text = $(ele).html();
+			if (text?.indexOf('window[') !== -1) {
+				const st = parseScript(text || '', {});
+				const statement = st.body[0];
+				data = parseData(statement as ExpressionStatement);
+			}
+		}
+
+		if (!data) {
+			throw new Error('Invalid data');
+		}
+
+		// 把漫画名也加进去 漫画名/第几话
+		const title = data.bname;
+		const chapter = data.cname;
+
+		// TODO 验证数据
+		const images = [];
+
+		// 组成图片链接
+		for (const file of data.files) {
+			images.push(
+				decodeURI(
+					`https://i.hamreus.com${data.path}${file}?e=${data.sl.e}&m=${data.sl.m}`
+				)
+			);
+		}
+
+		return {images, title, chapter, site: '漫画柜'};
 	}
 
 	async init() {
