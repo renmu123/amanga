@@ -26,7 +26,7 @@ export interface Comic {
 	publishTime: string;
 	category: string;
 	author: string;
-	chapters: {href: string; title: string; count: string}[];
+	chapters: {url: string; title: string; count: string}[];
 }
 
 export interface MangaOptions {

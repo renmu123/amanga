@@ -2,9 +2,9 @@ import {decompressFromBase64} from 'lz-string';
 import {Manga, MangaParser, Comic} from '../types';
 import {parseScript} from 'esprima';
 import {ExpressionStatement, CallExpression, MemberExpression, Literal} from 'estree';
-import {getContent} from '../util';
+import {getContent, sleep, download} from '../util';
 import cheerio from 'cheerio';
-import got from 'got';
+import {join, parse} from 'path';
 
 function decode(p: any, a: any, c: any, k: any, e: any, d: any) {
 	e = function (c: any) {
@@ -116,7 +116,7 @@ export class Parser implements MangaParser {
 				id: index,
 				title: $(item).attr('title'),
 				count: $(item).find('i').text(),
-				href: `${this.base}${$(item).attr('href')}`,
+				url: `${this.base}${$(item).attr('href')}`,
 			});
 		});
 
@@ -164,27 +164,39 @@ export class Parser implements MangaParser {
 	async downloadComic() {
 		if (!this.comicInfo.chapters) return;
 
-		this.comicInfo.chapters;
+		for (const chapter of this.comicInfo.chapters) {
+			await this.downloadChapterByUrl(chapter.url);
+		}
 	}
-
-	// 下载章节
+	// 通过Id下载章节
+	async downloadChapterById(chapterId: string | number) {
+		const url = `${this.base}/comic/${this.comicId}/${chapterId}`;
+		return this._downloadChapter(url);
+	}
+	// 通过url下载章节
 	async downloadChapterByUrl(chapterUrl: string) {
-		const images = await this.parseChapter(chapterUrl);
-
-		(images.images ?? []).map((url) => {
-			got.get(url, {});
-		});
+		return this._downloadChapter(chapterUrl);
 	}
-	async _download(url: string) {
-		return got.get(url, {
-			headers: {
-				Host: 'i.hamreus.com',
-				referer: this.base,
-			},
-			https: {
-				rejectUnauthorized: false,
-			},
-		});
+	// 下载章节
+	async _downloadChapter(chapterUrl: string) {
+		const comic = await this.parseChapter(chapterUrl);
+		console.log(`正在下载${comic.title}-${comic.chapter}`);
+
+		const basePath = `./${comic.title}/${comic.chapter}`;
+
+		let index = 1;
+		for (const imgaeUrl of comic.images ?? []) {
+			const url = new URL(imgaeUrl);
+			const imageName = `${String(index + 1).padStart(4, '0')}${parse(url.pathname).ext}`;
+			const path = join(basePath, imageName);
+			await download(imgaeUrl, path, {
+				headers: {
+					referer: this.base,
+				},
+			});
+			index += 1;
+			sleep(500);
+		}
 	}
 
 	// 废弃
